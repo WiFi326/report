@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>التقرير اليومي - نظام التقارير</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap');
+        
+        * {
+            font-family: 'Cairo', sans-serif;
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .required-field {
+            border-left: 3px solid #ef4444;
+        }
+
+        .field-error {
+            border: 2px solid #ef4444 !important;
+            background-color: #fef2f2 !important;
+        }
+        
+        .incomplete-notes {
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- حاوية الإشعارات -->
+    <div id="notificationContainer" class="fixed top-4 right-4 z-50"></div>
+    
+    <!-- محتوى التقرير اليومي -->
+    <div class="p-6">
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-bold text-gray-800">التقرير اليومي</h1>
+                <div class="text-gray-600">
+                    <p><strong>الموظف:</strong> <span id="employeeName">امير </span></p>
+                    <p><strong>التاريخ:</strong> <span id="currentDate"></span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- الاشتراكات -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6 card-hover">
+            <h3 class="text-lg font-semibold mb-4 text-blue-800 flex items-center">
+                <i class="fas fa-users ml-2"></i>
+                الاشتراكات
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-red-50 p-4 rounded-lg">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">الاشتراكات المنتهية اليوم <span class="text-red-500">*</span></label>
+                    <input type="number" id="expiredTodaySubscriptions" class="w-full p-2 border rounded-lg required-field" placeholder="0" min="0" required>
+                </div>
+                <div class="bg-green-50 p-4 rounded-lg">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">الاشتراكات المفعلة <span class="text-red-500">*</span></label>
+                    <input type="number" id="activeSubscriptions" class="w-full p-2 border rounded-lg required-field" placeholder="0" min="0" required>
+                </div>
+                <div class="bg-orange-50 p-4 rounded-lg">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">المشتركين لم يستقبلوا الاتصال <span class="text-red-500">*</span></label>
+                    <input type="number" id="noAnswerSubscribers" class="w-full p-2 border rounded-lg required-field" placeholder="0" min="0" required>
+                </div>
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">المشتركين يعاودون الاتصال لاحقاً <span class="text-red-500">*</span></label>
+                    <input type="number" id="callBackLaterSubscribers" class="w-full p-2 border rounded-lg required-field" placeholder="0" min="0" required>
+                </div>
+            </div>
+        </div>
+
+        <!-- الاتصالات بالزونات النقد -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6 card-hover">
+            <h3 class="text-lg font-semibold mb-4 text-blue-800 flex items-center">
+                <i class="fas fa-phone ml-2"></i>
+                الاتصالات بالزونات النقد
+            </h3>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">ملاحظات الاتصالات بالزونات النقد <span class="text-red-500">*</span></label>
+                <textarea id="cashZonesNotes" class="w-full p-2 border rounded-lg required-field" rows="4" placeholder="أضف ملاحظاتك حول الاتصالات بالزونات النقد..." required></textarea>
+            </div>
+        </div>
+
+        <!-- الصيانات -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6 card-hover">
+            <h3 class="text-lg font-semibold mb-4 text-blue-800 flex items-center">
+                <i class="fas fa-tools ml-2"></i>
+                الصيانات
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">عدد الصيانات الواردة <span class="text-red-500">*</span></label>
+                    <input type="number" id="incomingMaintenance" class="w-full p-2 border rounded-lg required-field" placeholder="0" min="0" required>
+                </div>
+                <div class="bg-green-50 p-4 rounded-lg">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">عدد الصيانات المكتملة <span class="text-red-500">*</span></label>
+                    <input type="number" id="completedMaintenance" class="w-full p-2 border rounded-lg required-field" placeholder="0" min="0" required>
+                </div>
+                <div class="bg-yellow-50 p-4 rounded-lg">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">عدد الصيانات المؤجلة <span class="text-red-500">*</span></label>
+                    <input type="number" id="postponedMaintenance" class="w-full p-2 border rounded-lg required-field" placeholder="0" min="0" onchange="togglePostponedNotes()" required>
+                </div>
+            </div>
+            
+            <!-- مربع سبب التأجيل -->
+            <div id="postponedNotesSection" class="hidden mb-4">
+                <div class="bg-yellow-50 p-4 rounded-lg border-2 border-yellow-200">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">اذكر سبب التأجيل <span class="text-red-500">*</span></label>
+                    <textarea id="postponedNotes" class="w-full p-2 border rounded-lg required-field" rows="3" placeholder="اذكر أسباب تأجيل الصيانات..." required></textarea>
+                </div>
+            </div>
+            
+            <!-- ملاحظات عامة حول الصيانات -->
+            <div class="bg-gray-50 p-4 rounded-lg">
+                <label class="block text-sm font-medium text-gray-700 mb-2">ملاحظات حول الصيانات</label>
+                <textarea id="maintenanceGeneralNotes" class="w-full p-2 border rounded-lg" rows="3" placeholder="أضف ملاحظاتك العامة حول الصيانات..."></textarea>
+            </div>
+        </div>
+
+        <!-- التذاكر -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6 card-hover">
+            <h3 class="text-lg font-semibold mb-4 text-blue-800 flex items-center">
+                <i class="fas fa-ticket-alt ml-2"></i>
+                التذاكر (Tickets)
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">عدد التذاكر الواردة <span class="text-red-500">*</span></label>
+                    <input type="number" id="incomingTickets" class="w-full p-2 border rounded-lg required-field" placeholder="0" min="0" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">عدد التذاكر المفتوحة <span class="text-red-500">*</span></label>
+                    <input type="number" id="openTickets" class="w-full p-2 border rounded-lg required-field" placeholder="0" min="0" required>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">ملاحظات حول التذاكر</label>
+                <textarea id="ticketsNotes" class="w-full p-2 border rounded-lg" rows="3" placeholder="أضف ملاحظاتك حول التذاكر..."></textarea>
+            </div>
+        </div>
+
+        <!-- التنصيبات -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6 card-hover">
+            <h3 class="text-lg font-semibold mb-4 text-blue-800 flex items-center">
+                <i class="fas fa-network-wired ml-2"></i>
+                التنصيبات
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">عدد التنصيبات الواردة <span class="text-red-500">*</span></label>
+                    <input type="number" id="incomingInstallations" class="w-full p-2 border rounded-lg required-field" placeholder="0" min="0" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">عدد التنصيبات المكتملة <span class="text-red-500">*</span></label>
+                    <input type="number" id="completedInstallations" class="w-full p-2 border rounded-lg required-field" placeholder="0" min="0" required>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">نوع الخدمة <span class="text-red-500">*</span></label>
+                    <select id="serviceType" class="w-full p-2 border rounded-lg required-field" required>
+                        <option value="">اختر نوع الخدمة</option>
+                        <option value="FTTH">ftth</option>
+                        <option value="وايرليس">وايرليس</option>
+                        <option value="كلاهما">كلاهما</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">ملاحظات حول التنصيبات</label>
+                    <textarea id="installationsNotes" class="w-full p-2 border rounded-lg h-[50px]" rows="3" placeholder="أضف ملاحظاتك حول التنصيبات..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- التيمات والموظفين -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6 card-hover">
+            <h3 class="text-lg font-semibold mb-4 text-blue-800 flex items-center">
+                <i class="fas fa-users-cog ml-2"></i>
+                التيمات والموظفين
+            </h3>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">نوع الإضافة</label>
+                <select id="addType" class="w-full p-2 border rounded-lg" onchange="toggleAddType()">
+                    <option value="">اختر النوع</option>
+                    <option value="employee">موظف</option>
+                    <option value="team">تيم</option>
+                </select>
+            </div>
+
+            <div id="workItemsList" class="space-y-4">
+                <!-- سيتم إضافة الموظفين والتيم هنا -->
+            </div>
+
+            <div class="mt-4 space-x-2 space-x-reverse">
+                <button id="addEmployeeBtn" onclick="addEmployee()" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 hidden">
+                    <i class="fas fa-user-plus ml-1"></i>
+                    إضافة موظف
+                </button>
+                <button id="addTeamBtn" onclick="addTeam()" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 hidden">
+                    <i class="fas fa-users ml-1"></i>
+                    إضافة تيم
+                </button>
+            </div>
+        </div>
+
+        <!-- زر الحفظ -->
+        <div class="text-center">
+            <button onclick="saveReport()" class="bg-green-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-green-700 transition-colors">
+                <i class="fas fa-save ml-2"></i>
+                حفظ التقرير
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // متغيرات خاصة بالتقرير اليومي
+        let editingReportId = null;
+        let maintenanceEmployees = [];
+        
+        // تهيئة الصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentUser = JSON.parse(sessionStorage.getItem('currentUser'));
+            if (currentUser) {
+                document.getElementById('employeeName').textContent = currentUser.name;
+                document.getElementById('currentDate').textContent = new Date().toLocaleDateString('ar-EG');
+                loadMaintenanceEmployees();
+            } else {
+                window.location.href = 'login.html';
+            }
+        });
+        
+        // تحميل موظفي الصيانة
+        function loadMaintenanceEmployees() {
+            try {
+                const savedEmployees = localStorage.getItem('maintenanceEmployees');
+                if (savedEmployees) {
+                    maintenanceEmployees = JSON.parse(savedEmployees);
+                }
+            } catch (error) {
+                console.error('خطأ في تحميل موظفي الصيانة:', error);
+                maintenanceEmployees = [];
+            }
+        }
+        
+        // تبديل نوع الإضافة
+        function toggleAddType() {
+            const addType = document.getElementById('addType').value;
+            const addEmployeeBtn = document.getElementById('addEmployeeBtn');
+            const addTeamBtn = document.getElementById('addTeamBtn');
+            
+            if (addType === 'employee') {
+                addEmployeeBtn.classList.remove('hidden');
+                addTeamBtn.classList.add('hidden');
+            } else if (addType === 'team') {
+                addEmployeeBtn.classList.add('hidden');
+                addTeamBtn.classList.remove('hidden');
+            } else {
+                addEmployeeBtn.classList.add('hidden');
+                addTeamBtn.classList.add('hidden');
+            }
+        }
+        
+        // إضافة موظف جديد
+        function addEmployee() {
+            const workItemsList = document.getElementById('workItemsList');
+            const employeeId = 'employee_' + Date.now();
+            const newEmployee = document.createElement('div');
+            
+            // إنشاء قائمة منسدلة بأسماء موظفي الصيانة
+            let employeesOptions = '<option value="">اختر اسم الموظف</option>';
+            maintenanceEmployees.forEach(employee => {
+                employeesOptions += `<option value="${employee}">${employee}</option>`;
+            });
+            
+            showNotification('تم تحديد موظف جديد ', 'success');
+            newEmployee.className = 'bg-green-50 p-4 rounded-lg border-2 border-green-200 work-item';
+            newEmployee.setAttribute('data-type', 'employee');
+            newEmployee.innerHTML = `
+                <div class="flex justify-between items-center mb-4">
+                    <h4 class="text-lg font-semibold text-green-800 flex items-center">
+                        <i class="fas fa-user ml-2"></i>
+                        موظف جديد
+                    </h4>
+                    <button onclick="removeWorkItem(this)" class="text-red-500 hover:text-red-700">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">اسم الموظف <span class="text-red-500">*</span></label>
+                        <select class="w-full p-2 border rounded-lg employee-name required-field" required>
+                            ${employeesOptions}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">تقييم الموظف <span class="text-red-500">*</span></label>
+                        <select class="w-full p-2 border rounded-lg employee-rating required-field" required>
+                            <option value="">اختر التقييم</option>
+                            <option value="ممتاز">ممتاز</option>
+                            <option value="جيد جداً">جيد جداً</option>
+                            <option value="جيد">جيد</option>
+                            <option value="مقبول">مقبول</option>
+                            <option value="ضعيف">ضعيف</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">عدد الصيانات الواردة <span class="text-red-500">*</span></label>
+                        <input type="number" class="w-full p-2 border rounded-lg maintenance-incoming required-field" placeholder="0" min="0" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">عدد الصيانات المكتملة <span class="text-red-500">*</span></label>
+                        <input type="number" class="w-full p-2 border rounded-lg maintenance-completed required-field" placeholder="0" min="0" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">عدد الصيانات غير المكتملة <span class="text-red-500">*</span></label>
+                        <input type="number" class="w-full p-2 border rounded-lg maintenance-incomplete required-field" placeholder="0" min="0" onchange="toggleIncompleteNotes(this)" required>
+                    </div>
+                </div>
+
+                <div class="incomplete-notes hidden mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">ملاحظات الصيانات غير المكتملة (اذكر السبب) <span class="text-red-500">*</span></label>
+                    <textarea class="w-full p-2 border rounded-lg maintenance-notes required-field" rows="2" placeholder="اذكر أسباب عدم اكتمال الصيانات..." required></textarea>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2"> الكيبلات الصادرة</label>
+                        <textarea class="w-full p-2 border rounded-lg cables-outgoing-notes" rows="3" placeholder="ملاحظات الكيبلات الصادرة..."></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2"> الكيبلات الواردة</label>
+                        <textarea class="w-full p-2 border rounded-lg cables-incoming-notes" rows="3" placeholder="ملاحظات الكيبلات الواردة..."></textarea>
+                    </div>
+                </div>
+            `;
+            workItemsList.appendChild(newEmployee);
+        }
+        
+        // إضافة تيم جديد
+        function addTeam() {
+            const workItemsList = document.getElementById('workItemsList');
+            const teamId = 'team_' + Date.now();
+            const newTeam = document.createElement('div');
+            showNotification('تم تحديد تيم جديد ', 'success');
+            newTeam.className = 'bg-blue-50 p-4 rounded-lg border-2 border-blue-200 work-item';
+            newTeam.setAttribute('data-type', 'team');
+            
+            // إنشاء قائمة منسدلة بأسماء موظفي الصيانة
+            let employeesOptions = '<option value="">اختر اسم الموظف</option>';
+            maintenanceEmployees.forEach(employee => {
+                employeesOptions += `<option value="${employee}">${employee}</option>`;
+            });
+            
+            newTeam.innerHTML = `
+                <div class="flex justify-between items-center mb-4">
+                    <h4 class="text-lg font-semibold text-blue-800 flex items-center">
+                        <i class="fas fa-users ml-2"></i>
+                        تيم جديد
+                    </h4>
+                    <button onclick="removeWorkItem(this)" class="text-red-500 hover:text-red-700">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">أعضاء التيم (أقل عدد: 2) <span class="text-red-500">*</span></label>
+                    <div class="team-members space-y-2">
+                        <select class="w-full p-2 border rounded-lg member-name required-field" required>
+                            ${employeesOptions}
+                        </select>
+                        <select class="w-full p-2 border rounded-lg member-name required-field" required>
+                            ${employeesOptions}
+                        </select>
+                    </div>
+                    <button type="button" onclick="addTeamMember(this)" class="mt-2 text-blue-600 hover:text-blue-800">
+                        <i class="fas fa-plus ml-1"></i>
+                        إضافة موظف آخر
+                    </button>
+                </div>
+
+                <button type="button" onclick="confirmTeam(this)" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 mb-4">
+                    <i class="fas fa-check ml-1"></i>
+                    تأكيد التيم
+                </button>
+
+                <div class="team-details hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">تقييم التيم <span class="text-red-500">*</span></label>
+                            <select class="w-full p-2 border rounded-lg team-rating required-field" required>
+                                <option value="">اختر التقييم</option>
+                                <option value="ممتاز">ممتاز</option>
+                                <option value="جيد جداً">جيد جداً</option>
+                                <option value="جيد">جيد</option>
+                                <option value="مقبول">مقبول</option>
+                                <option value="ضعيف">ضعيف</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">عدد الصيانات الواردة <span class="text-red-500">*</span></label>
+                            <input type="number" class="w-full p-2 border rounded-lg maintenance-incoming required-field" placeholder="0" min="0" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">عدد الصيانات المكتملة <span class="text-red-500">*</span></label>
+                            <input type="number" class="w-full p-2 border rounded-lg maintenance-completed required-field" placeholder="0" min="0" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">عدد الصيانات غير المكتملة <span class="text-red-500">*</span></label>
+                            <input type="number" class="w-full p-2 border rounded-lg maintenance-incomplete required-field" placeholder="0" min="0" onchange="toggleIncompleteNotes(this)" required>
+                        </div>
+                    </div>
+
+                    <div class="incomplete-notes hidden mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">ملاحظات الصيانات غير المكتملة (اذكر السبب) <span class="text-red-500">*</span></label>
+                        <textarea class="w-full p-2 border rounded-lg maintenance-notes required-field" rows="2" placeholder="اذكر أسباب عدم اكتمال الصيانات..." required></textarea>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2"> الكيبلات الصادرة</label>
+                            <textarea class="w-full p-2 border rounded-lg cables-outgoing-notes" rows="3" placeholder="ملاحظات الكيبلات الصادرة..."></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2"> الكيبلات الواردة</label>
+                            <textarea class="w-full p-2 border rounded-lg cables-incoming-notes" rows="3" placeholder="ملاحظات الكيبلات الواردة..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            `;
+            workItemsList.appendChild(newTeam);
+        }
+        
+        // إضافة موظف جديد للفريق
+        function addTeamMember(button) {
+            const teamMembers = button.previousElementSibling;
+            const newMember = document.createElement('select');
+            newMember.className = 'w-full p-2 border rounded-lg member-name';
+            
+            // إنشاء قائمة منسدلة بأسماء موظفي الصيانة
+            let employeesOptions = '<option value="">اختر اسم الموظف</option>';
+            maintenanceEmployees.forEach(employee => {
+                employeesOptions += `<option value="${employee}">${employee}</option>`;
+            });
+            
+            newMember.innerHTML = employeesOptions;
+            teamMembers.appendChild(newMember);
+        }
+        
+        // تأكيد التيم
+        function confirmTeam(button) {
+            const teamItem = button.closest('.work-item');
+            const memberInputs = teamItem.querySelectorAll('.member-name');
+            const filledMembers = Array.from(memberInputs).filter(input => input.value.trim() !== '');
+            
+            if (filledMembers.length < 2) {
+                showNotification('يجب إضافة اثنان موظفين على الأقل للتيم', 'warning');
+                return;
+            }
+
+            // إخفاء قسم إعداد التيم وإظهار قسم التفاصيل
+            button.style.display = 'none';
+            teamItem.querySelector('.team-details').classList.remove('hidden');
+            
+            // تعطيل تعديل أسماء الأعضاء
+            memberInputs.forEach(input => {
+                if (input.value.trim() !== '') {
+                    input.readOnly = true;
+                    input.classList.add('bg-gray-100');
+                }
+            });
+            
+            showNotification(`تم تأكيد التيم بنجاح`, 'success');
+        }
+        
+        // إظهار/إخفاء ملاحظات الصيانات المؤجلة
+        function togglePostponedNotes() {
+            const postponedInput = document.getElementById('postponedMaintenance');
+            const postponedNotesSection = document.getElementById('postponedNotesSection');
+            const postponedNotes = document.getElementById('postponedNotes');
+            
+            if (parseInt(postponedInput.value) > 0) {
+                postponedNotesSection.classList.remove('hidden');
+                postponedNotes.setAttribute('required', 'required');
+            } else {
+                postponedNotesSection.classList.add('hidden');
+                postponedNotes.removeAttribute('required');
+                postponedNotes.value = '';
+            }
+        }
+        
+        // إظهار/إخفاء ملاحظات الصيانات غير المكتملة
+        function toggleIncompleteNotes(input) {
+            const workItem = input.closest('.work-item');
+            const notesDiv = workItem.querySelector('.incomplete-notes');
+            const notesTextarea = workItem.querySelector('.maintenance-notes');
+            
+            if (parseInt(input.value) > 0) {
+                notesDiv.classList.remove('hidden');
+                notesTextarea.setAttribute('required', 'required');
+            } else {
+                notesDiv.classList.add('hidden');
+                notesTextarea.removeAttribute('required');
+                notesTextarea.value = '';
+            }
+        }
+        
+        // حذف عنصر عمل (موظف أو تيم)
+        function removeWorkItem(button) {
+            if (confirm('هل أنت متأكد من حذف هذا العنصر؟')) {
+                const workItem = button.closest('.work-item');
+                const type = workItem.getAttribute('data-type');
+                const name = type === 'employee' ? 
+                    workItem.querySelector('.employee-name')?.value || 'الموظف' :
+                    'التيم';
+                
+                workItem.remove();
+                showNotification(`تم حذف ${type === 'employee' ? 'الموظف' : 'التيم'} "${name}" بنجاح`, 'warning');
+            }
+        }
+        
+        // التحقق من صحة النموذج
+        function validateForm() {
+            const requiredFields = document.querySelectorAll('.required-field[required]');
+            let isValid = true;
+            let firstErrorField = null;
+
+            // إزالة التنسيق السابق للأخطاء
+            document.querySelectorAll('.field-error').forEach(field => {
+                field.classList.remove('field-error');
+            });
+
+            requiredFields.forEach(field => {
+                const value = field.value.trim();
+                const isVisible = !field.closest('.hidden');
+                
+                if (isVisible && (!value || value === '')) {
+                    field.classList.add('field-error');
+                    isValid = false;
+                    if (!firstErrorField) {
+                        firstErrorField = field;
+                    }
+                }
+            });
+
+            // التحقق من التيمات والموظفين
+            const workItems = document.querySelectorAll('.work-item');
+            workItems.forEach(item => {
+                const type = item.getAttribute('data-type');
+                const isTeamConfirmed = type === 'team' && !item.querySelector('.team-details').classList.contains('hidden');
+                const isEmployee = type === 'employee';
+                
+                if (isEmployee || isTeamConfirmed) {
+                    const requiredFieldsInItem = item.querySelectorAll('.required-field[required]');
+                    requiredFieldsInItem.forEach(field => {
+                        const value = field.value.trim();
+                        const isVisible = !field.closest('.hidden');
+                        
+                        if (isVisible && (!value || value === '')) {
+                            field.classList.add('field-error');
+                            isValid = false;
+                            if (!firstErrorField) {
+                                firstErrorField = field;
+                            }
+                        }
+                    });
+                }
+            });
+
+            if (!isValid && firstErrorField) {
+                firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                firstErrorField.focus();
+            }
+
+            return isValid;
+        }
+        
+        // حفظ التقرير
+        function saveReport() {
+            try {
+                // التحقق من وجود مستخدم مسجل
+                const currentUser = JSON.parse(sessionStorage.getItem('currentUser'));
+                if (!currentUser) {
+                    showNotification('يجب تسجيل الدخول أولاً', 'error');
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                console.log('🔄 بدء عملية حفظ التقرير...');
+
+                // التحقق من صحة النموذج
+                if (!validateForm()) {
+                    console.error('❌ النموذج غير صحيح');
+                    showNotification('يرجى ملء جميع الحقول المطلوبة المميزة بعلامة (*)', 'error');
+                    return;
+                }
+
+                const isEditing = editingReportId !== null;
+                
+                // إذا كان في وضع التعديل، التحقق من ملكية التقرير
+                if (isEditing) {
+                    const reports = JSON.parse(localStorage.getItem('reports') || '[]');
+                    const originalReport = reports.find(r => r.id === editingReportId);
+                    if (originalReport && originalReport.userId !== currentUser.id) {
+                        showNotification('ليس لديك صلاحية تعديل هذا التقرير', 'error');
+                        return;
+                    }
+                }
+                
+                showNotification(isEditing ? 'جاري حفظ التعديلات...' : 'جاري حفظ التقرير...', 'info', 2000);
+                
+                const now = new Date().toISOString();
+                const reportId = isEditing ? editingReportId : Date.now().toString();
+                
+                const reportData = {
+                    id: reportId,
+                    userId: currentUser.id,
+                    userEmail: currentUser.email,
+                    date: new Date().toISOString().split('T')[0],
+                    employee: currentUser.name,
+                    createdAt: isEditing ? reports.find(r => r.id === editingReportId)?.createdAt || now : now,
+                    updatedAt: isEditing ? now : null,
+                    subscriptions: {
+                        expiredToday: parseInt(document.getElementById('expiredTodaySubscriptions').value) || 0,
+                        active: parseInt(document.getElementById('activeSubscriptions').value) || 0,
+                        noAnswer: parseInt(document.getElementById('noAnswerSubscribers').value) || 0,
+                        callBackLater: parseInt(document.getElementById('callBackLaterSubscribers').value) || 0
+                    },
+                    cashZones: {
+                        notes: document.getElementById('cashZonesNotes').value || ''
+                    },
+                    maintenance: {
+                        incoming: parseInt(document.getElementById('incomingMaintenance').value) || 0,
+                        completed: parseInt(document.getElementById('completedMaintenance').value) || 0,
+                        postponed: parseInt(document.getElementById('postponedMaintenance').value) || 0,
+                        postponedNotes: document.getElementById('postponedNotes').value || '',
+                        generalNotes: document.getElementById('maintenanceGeneralNotes').value || ''
+                    },
+                    tickets: {
+                        incoming: parseInt(document.getElementById('incomingTickets').value) || 0,
+                        open: parseInt(document.getElementById('openTickets').value) || 0,
+                        notes: document.getElementById('ticketsNotes').value || ''
+                    },
+                    installations: {
+                        incoming: parseInt(document.getElementById('incomingInstallations').value) || 0,
+                        completed: parseInt(document.getElementById('completedInstallations').value) || 0,
+                        serviceType: document.getElementById('serviceType').value || '',
+                        notes: document.getElementById('installationsNotes').value || ''
+                    },
+                    workItems: Array.from(document.querySelectorAll('.work-item')).map(item => {
+                        const type = item.getAttribute('data-type');
+                        const baseData = {
+                            type: type,
+                            maintenanceIncoming: parseInt(item.querySelector('.maintenance-incoming')?.value) || 0,
+                            maintenanceCompleted: parseInt(item.querySelector('.maintenance-completed')?.value) || 0,
+                            maintenanceIncomplete: parseInt(item.querySelector('.maintenance-incomplete')?.value) || 0,
+                            maintenanceNotes: item.querySelector('.maintenance-notes')?.value || '',
+                            cablesOutgoingNotes: item.querySelector('.cables-outgoing-notes')?.value || '',
+                            cablesIncomingNotes: item.querySelector('.cables-incoming-notes')?.value || ''
+                        };
+
+                        if (type === 'employee') {
+                            return {
+                                ...baseData,
+                                name: item.querySelector('.employee-name')?.value || '',
+                                rating: item.querySelector('.employee-rating')?.value || ''
+                            };
+                        } else if (type === 'team') {
+                            const members = Array.from(item.querySelectorAll('.member-name'))
+                                .map(input => input.value.trim())
+                                .filter(name => name !== '');
+                            
+                            return {
+                                ...baseData,
+                                members: members,
+                                rating: item.querySelector('.team-rating')?.value || ''
+                            };
+                        }
+                    }).filter(item => item && (item.name || item.members))
+                };
+
+                console.log('📊 بيانات التقرير:', reportData);
+                console.log('💾 حفظ في التخزين المحلي...');
+
+                // حفظ في التخزين المحلي
+                const reports = JSON.parse(localStorage.getItem('reports') || '[]');
+                
+                if (isEditing) {
+                    console.log('✏️ تحديث التقرير الموجود:', reportId);
+                    
+                    // تحديث في المصفوفة المحلية
+                    const reportIndex = reports.findIndex(r => r.id === editingReportId);
+                    if (reportIndex !== -1) {
+                        reports[reportIndex] = reportData;
+                    }
+                } else {
+                    console.log('➕ إضافة تقرير جديد:', reportId);
+                    
+                    // إضافة في المصفوفة المحلية
+                    reports.push(reportData);
+                }
+                
+                // حفظ في localStorage
+                localStorage.setItem('reports', JSON.stringify(reports));
+                
+                console.log('✅ تم حفظ التقرير بنجاح ');
+                
+                showNotification(
+                    isEditing ? 'تم حفظ التعديلات بنجاح!' : 'تم حفظ التقرير بنجاح!', 
+                    'success'
+                );
+
+                editingReportId = null;
+                
+                // مسح النموذج
+                clearForm();
+                
+            } catch (error) {
+                console.error('❌ خطأ في حفظ التقرير:', error);
+                showNotification(`خطأ في حفظ التقرير: ${error.message}`, 'error');
+            }
+        }
+        
+        // مسح النموذج
+        function clearForm() {
+            document.querySelectorAll('input[type="number"]').forEach(input => {
+                input.value = '';
+                input.classList.remove('field-error');
+            });
+            document.querySelectorAll('textarea').forEach(textarea => {
+                textarea.value = '';
+                textarea.classList.remove('field-error');
+            });
+            document.querySelectorAll('select').forEach(select => {
+                if (select.id !== 'addType' && select.id !== 'departmentSetting' && select.id !== 'darkModeToggle') {
+                    select.value = '';
+                    select.classList.remove('field-error');
+                }
+            });
+            document.getElementById('workItemsList').innerHTML = '';
+            document.getElementById('addType').value = '';
+            document.getElementById('postponedNotesSection').classList.add('hidden');
+            toggleAddType();
+            editingReportId = null;
+        }
+        
+        // نظام الإشعارات
+        function showNotification(message, type = 'success', duration = 4000) {
+            const container = document.getElementById('notificationContainer');
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            
+            const icons = {
+                success: 'fas fa-check',
+                error: 'fas fa-times',
+                warning: 'fas fa-exclamation',
+                info: 'fas fa-info'
+            };
+
+            notification.innerHTML = `
+                <div class="flex items-start">
+                    <div class="notification-icon">
+                        <i class="${icons[type]}"></i>
+                    </div>
+                    <div class="mr-3 flex-1">
+                        <p class="text-sm font-medium text-gray-800">${message}</p>
+                    </div>
+                    <button onclick="removeNotification(this)" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-sm"></i>
+                    </button>
+                </div>
+            `;
+
+            container.appendChild(notification);
+
+            // إظهار الإشعار
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 100);
+
+            // إخفاء الإشعار تلقائياً
+            setTimeout(() => {
+                removeNotification(notification);
+            }, duration);
+        }
+
+        function removeNotification(element) {
+            const notification = element.closest ? element.closest('.notification') : element;
+            notification.classList.remove('show');
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 300);
+        }
+    </script>
+</body>
+</html>

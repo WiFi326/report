@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الإحصائيات - نظام التقارير</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap');
+        
+        * {
+            font-family: 'Cairo', sans-serif;
+        }
+        
+        .stat-card {
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+        
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.5s ease;
+        }
+        
+        .dark {
+            --tw-bg-opacity: 1;
+            background-color: rgb(17 24 39 / var(--tw-bg-opacity));
+            color: white;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 transition-colors duration-300" id="body">
+    <div class="min-h-screen p-6">
+        <div class="max-w-7xl mx-auto">
+            <!-- رأس الصفحة -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <div class="flex justify-between items-center">
+                    <h1 class="text-2xl font-bold text-gray-800">الإحصائيات والتقارير</h1>
+                    <div class="flex items-center space-x-4 space-x-reverse">
+                        <button id="printStats" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
+                            <i class="fas fa-print ml-2"></i>
+                            طباعة التقرير
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- فلاتر البحث -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">فلاتر الإحصائيات</h2>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">نوع التقرير</label>
+                        <select id="reportType" class="w-full p-2 border rounded-lg" onchange="toggleDateFilters()">
+                            <option value="daily">يومي</option>
+                            <option value="weekly">أسبوعي</option>
+                            <option value="monthly">شهري</option>
+                            <option value="custom">مخصص</option>
+                        </select>
+                    </div>
+                    
+                    <div id="dailyFilter">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">اليوم</label>
+                        <input type="date" id="dailyDate" class="w-full p-2 border rounded-lg" value="">
+                    </div>
+                    
+                    <div id="weeklyFilter" class="hidden">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">الأسبوع</label>
+                        <select id="weekSelector" class="w-full p-2 border rounded-lg">
+                            <!-- سيتم ملؤها بالأسابيع المتاحة -->
+                        </select>
+                    </div>
+                    
+                    <div id="monthlyFilter" class="hidden">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">الشهر</label>
+                        <select id="monthSelector" class="w-full p-2 border rounded-lg">
+                            <option value="0">يناير</option>
+                            <option value="1">فبراير</option>
+                            <option value="2">مارس</option>
+                            <option value="3">أبريل</option>
+                            <option value="4">مايو</option>
+                            <option value="5">يونيو</option>
+                            <option value="6">يوليو</option>
+                            <option value="7">أغسطس</option>
+                            <option value="8">سبتمبر</option>
+                            <option value="9">أكتوبر</option>
+                            <option value="10">نوفمبر</option>
+                            <option value="11">ديسمبر</option>
+                        </select>
+                    </div>
+                    
+                    <div id="yearFilter">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">السنة</label>
+                        <select id="yearSelector" class="w-full p-2 border rounded-lg">
+                            <!-- سيتم ملؤها بالسنوات المتاحة -->
+                        </select>
+                    </div>
+                    
+                    <div id="customFilter" class="hidden md:col-span-2">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">من تاريخ</label>
+                                <input type="date" id="dateFrom" class="w-full p-2 border rounded-lg">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">إلى تاريخ</label>
+                                <input type="date" id="dateTo" class="w-full p-2 border rounded-lg">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="md:col-span-4 flex justify-end pt-4">
+                        <button onclick="loadStatistics()" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">
+                            <i class="fas fa-chart-bar ml-2"></i>
+                            عرض الإحصائيات
+                            </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- بطاقات الإحصائيات -->
+            <div id="statsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <!-- سيتم ملؤها بالإحصائيات -->
+            </div>
+
+            <!-- الرسوم البيانية -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">نسبة إنجاز الصيانات</h3>
+                    <div class="relative h-64">
+                        <canvas id="maintenanceChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">توزيع الاشتراكات</h3>
+                    <div class="relative h-64">
+                        <canvas id="subscriptionsChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">أداء الموظفين</h3>
+                    <div class="relative h-64">
+                        <canvas id="employeesChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">التنصيبات والتذاكر</h3>
+                    <div class="relative h-64">
+                        <canvas id="installationsTicketsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- جدول الإحصائيات التفصيلية -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">الإحصائيات التفصيلية</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right">
+                        <thead>
+                            <tr class="bg-gray-100">
+                                <th class="p-3">المؤشر</th>
+                                <th class="p-3">القيمة</th>
+                                <th class="p-3">النسبة</th>
+                                <th class="p-3">التغير</th>
+                            </tr>
+                        </thead>
+                        <tbody id="statsTable">
+                            <!-- سيتم ملؤها بالإحصائيات التفصيلية -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // تهيئة الصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            // التحقق من وجود مستخدم مسجل
+            const currentUser = JSON.parse(sessionStorage.getItem('currentUser'));
+            if (!currentUser) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            // تهيئة الفلاتر
+            initFilters();
+            
+            // تحميل الإحصائيات للتاريخ الحالي
+            loadStatistics();
+        });
+
+        // تهيئة فلاتر التاريخ
+        function initFilters() {
+            // تعيين التاريخ الحالي كقيمة افتراضية
+            const today = new Date();
+            document.getElementById('dailyDate').value = today.toISOString().split('T')[0];
+            
+            // ملء سنوات التقارير المتاحة
+            const yearSelect = document.getElementById('yearSelector');
+            const currentYear = today.getFullYear();
+            
+            for (let year = currentYear; year >= currentYear - 5; year--) {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                option.selected = year === currentYear;
+                yearSelect.appendChild(option);
+            }
+            
+            // ملء أسابيع التقارير المتاحة
+            populateWeekSelector();
+            
+            // تعيين الشهر الحالي
+            document.getElementById('monthSelector').value = today.getMonth();
+        }
+
+        // تبديل عرض فلاتر التاريخ حسب نوع التقرير
+        function toggleDateFilters() {
+            const reportType = document.getElementById('reportType').value;
+            
+            // إخفاء جميع الفلاتر أولاً
+            document.getElementById('dailyFilter').classList.add('hidden');
+            document.getElementById('weeklyFilter').classList.add('hidden');
+            document.getElementById('monthlyFilter').classList.add('hidden');
+            document.getElementById('customFilter').classList.add('hidden');
+            
+            // إظهار الفلتر المناسب
+            if (reportType === 'daily') {
+                document.getElementById('dailyFilter').classList.remove('hidden');
+            } else if (reportType === 'weekly') {
+                document.getElementById('weeklyFilter').classList.remove('hidden');
+            } else if (reportType === 'monthly') {
+                document.getElementById('monthlyFilter').classList.remove('hidden');
+            } else if (reportType === 'custom') {
+                document.getElementById('customFilter').classList.remove('hidden');
+            }
+        }
+
+        // ملء قائمة الأسابيع المتاحة
+        function populateWeekSelector() {
+            // هذه الدالة تحتاج إلى تحسين لاستخلاص الأسابيع من التقارير المتاحة
+            const weekSelector = document.getElementById('weekSelector');
+            weekSelector.innerHTML = '';
+            
+            // إضافة بعض الأسابيع كمثال (يجب استبدالها بأسابيع حقيقية من البيانات)
+            for (let i = 1; i <= 52; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = `الأسبوع ${i}`;
+                weekSelector.appendChild(option);
+            }
+            
+            // تحديد الأسبوع الحالي
+            const today = new Date();
+            const startOfYear = new Date(today.getFullYear(), 0, 1);
+            const days = Math.floor((today - startOfYear) / (24 * 60 * 60 * 1000));
+            const weekNumber = Math.ceil((days + startOfYear.getDay() + 1) / 7);
+            
+            weekSelector.value = weekNumber;
+        }
+
+        // تحميل الإحصائيات بناءً على الفلاتر
+        function loadStatistics() {
+            // الحصول على التقارير من التخزين المحلي
+            const savedReports = localStorage.getItem('reports');
+            if (!savedReports) {
+                showNoDataMessage();
+                return;
+            }
+            
+            const allReports = JSON.parse(savedReports);
+            const filteredReports = filterReportsByDate(allReports);
+            
+            if (filteredReports.length === 0) {
+                showNoDataMessage();
+                return;
+            }
+            
+            // حساب الإحصائيات
+            const stats = calculateStatistics(filteredReports);
+            
+            // عرض الإحصائيات
+            displayStatistics(stats);
+            
+            // إنشاء الرسوم البيانية
+            createCharts(stats, filteredReports);
+        }
+
+        // تصفية التقارير حسب التاريخ المحدد
+        function filterReportsByDate(reports) {
+            const reportType = document.getElementById('reportType').value;
+            const year = parseInt(document.getElementById('yearSelector').value);
+            
+            let filteredReports = [];
+            
+            if (reportType === 'daily') {
+                const selectedDate = document.getElementById('dailyDate').value;
+                filteredReports = reports.filter(report => report.date === selectedDate);
+            } 
+            else if (reportType === 'weekly') {
+                const weekNumber = parseInt(document.getElementById('weekSelector').value);
+                filteredReports = reports.filter(report => {
+                    const reportDate = new Date(report.date);
+                    const startOfYear = new Date(reportDate.getFullYear(), 0, 1);
+                    const days = Math.floor((reportDate - startOfYear) / (24 * 60 * 60 * 1000));
+                    const reportWeek = Math.ceil((days + startOfYear.getDay() + 1) / 7);
+                    return reportWeek === weekNumber && reportDate.getFullYear() === year;
+                });
+            } 
+            else if (reportType === 'monthly') {
+                const month = parseInt(document.getElementById('monthSelector').value);
+                filteredReports = reports.filter(report => {
+                    const reportDate = new Date(report.date);
+                    return reportDate.getMonth() === month && reportDate.getFullYear() === year;
+                });
+            } 
+            else if (reportType === 'custom') {
+                const dateFrom = document.getElementById('dateFrom').value;
+                const dateTo = document.getElementById('dateTo').value;
+                
+                if (!dateFrom || !dateTo) {
+                    alert('يرجى تحديد تاريخ البداية والنهاية');
+                    return [];
+                }
+                
+                filteredReports = reports.filter(report => {
+                    return report.date >= dateFrom && report.date <= dateTo;
+                });
+            }
+            
+            return filteredReports;
+        }
+
+        // حساب الإحصائيات من التقارير
+        function calculateStatistics(reports) {
+            let stats = {
+                totalReports: reports.length,
+                subscriptions: {
+                    expiredToday: 0,
+                    active: 0,
+                    noAnswer: 0,
+                    callBackLater: 0
+                },
+                maintenance: {
+                    incoming: 0,
+                    completed: 0,
+                    postponed: 0
+                },
+                tickets: {
+                    incoming: 0,
+                    open: 0
+                },
+                installations: {
+                    incoming: 0,
+                    completed: 0
+                },
+                employees: {},
+                teams: {}
+            };
+            
+            reports.forEach(report => {
+                // الاشتراكات
+                stats.subscriptions.expiredToday += report.subscriptions.expiredToday || 0;
+                stats.subscriptions.active += report.subscriptions.active || 0;
+                stats.subscriptions.noAnswer += report.subscriptions.noAnswer || 0;
+                stats.subscriptions.callBackLater += report.subscriptions.callBackLater || 0;
+                
+                // الصيانات
+                stats.maintenance.incoming += report.maintenance.incoming || 0;
+                stats.maintenance.completed += report.maintenance.completed || 0;
+                stats.maintenance.postponed += report.maintenance.postponed || 0;
+                
+                // التذاكر
+                stats.tickets.incoming += report.tickets.incoming || 0;
+                stats.tickets.open += report.tickets.open || 0;
+                
+                // التنصيبات
+                stats.installations.incoming += report.installations.incoming || 0;
+                stats.installations.completed += report.installations.completed || 0;
+                
+                // الموظفين والتيمات
+                if (report.workItems && report.workItems.length > 0) {
+                    report.workItems.forEach(item => {
+                        if (item.type === 'employee') {
+                            if (!stats.employees[item.name]) {
+                                stats.employees[item.name] = {
+                                    maintenanceIncoming: 0,
+                                    maintenanceCompleted: 0,
+                                    rating: item.rating || 'غير محدد'
+                                };
+                            }
+                            stats.employees[item.name].maintenanceIncoming += item.maintenanceIncoming || 0;
+                            stats.employees[item.name].maintenanceCompleted += item.maintenanceCompleted || 0;
+                        } else if (item.type === 'team') {
+                            const teamKey = item.members.join(' - ');
+                            if (!stats.teams[teamKey]) {
+                                stats.teams[teamKey] = {
+                                    maintenanceIncoming: 0,
+                                    maintenanceCompleted: 0,
+                                    rating: item.rating || 'غير محدد'
+                                };
+                            }
+                            stats.teams[teamKey].maintenanceIncoming += item.maintenanceIncoming || 0;
+                            stats.teams[teamKey].maintenanceCompleted += item.maintenanceCompleted || 0;
+                        }
+                    });
+                }
+            });
+            
+            // حساب النسب المئوية
+            stats.maintenance.completionRate = stats.maintenance.incoming > 0 
+                ? Math.round((stats.maintenance.completed / stats.maintenance.incoming) * 100) 
+                : 0;
+                
+            stats.installations.completionRate = stats.installations.incoming > 0 
+                ? Math.round((stats.installations.completed / stats.installations.incoming) * 100) 
+                : 0;
+                
+            stats.tickets.completionRate = stats.tickets.incoming > 0 
+                ? Math.round(((stats.tickets.incoming - stats.tickets.open) / stats.tickets.incoming) * 100) 
+                : 0;
+            
+            return stats;
+        }
+
+        // عرض الإحصائيات في البطاقات
+        function displayStatistics(stats) {
+            const statsContainer = document.getElementById('statsContainer');
+            statsContainer.innerHTML = '';
+            
+            // إنشاء البطاقات الإحصائية
+            const statCards = [
+                {
+                    title: 'إجمالي التقارير',
+                    value: stats.totalReports,
+                    icon: 'fas fa-file-alt',
+                    color: 'bg-blue-500'
+                },
+                {
+                    title: 'نسبة إنجاز الصيانات',
+                    value: `${stats.maintenance.completionRate}%`,
+                    icon: 'fas fa-tools',
+                    color: 'bg-green-500'
+                },
+                {
+                    title: 'نسبة إنجاز التنصيبات',
+                    value: `${stats.installations.completionRate}%`,
+                    icon: 'fas fa-network-wired',
+                    color: 'bg-purple-500'
+                },
+                {
+                    title: 'نسبة إنجاز التذاكر',
+                    value: `${stats.tickets.completionRate}%`,
+                    icon: 'fas fa-ticket-alt',
+                    color: 'bg-orange-500'
+                }
+            ];
+            
+            // إضافة البطاقات إلى الواجهة
+            statCards.forEach(card => {
+                const cardElement = document.createElement('div');
+                cardElement.className = 'stat-card bg-white rounded-lg shadow-md p-6 flex items-center';
+                
+                cardElement.innerHTML = `
+                    <div class="${card.color} text-white p-4 rounded-full mr-4">
+                        <i class="${card.icon} text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800">${card.title}</h3>
+                        <p class="text-3xl font-bold text-gray-900">${card.value}</p>
+                    </div>
+                `;
+                
+                statsContainer.appendChild(cardElement);
+            });
+            
+            // ملء الجدول التفصيلي
+            fillStatsTable(stats);
+        }
+
+        // ملء الجدول بالإحصائيات التفصيلية
+        function fillStatsTable(stats) {
+            const statsTable = document.getElementById('statsTable');
+            statsTable.innerHTML = '';
+            
+            // حساب القيم الإجمالية لكل مؤشر
+            const totalSubscriptions = stats.subscriptions.expiredToday + stats.subscriptions.active + 
+                                      stats.subscriptions.noAnswer + stats.subscriptions.callBackLater;
+            
+            const totalMaintenance = stats.maintenance.incoming;
+            const totalTickets = stats.tickets.incoming;
+            const totalInstallations = stats.installations.incoming;
+            
+            const statsData = [
+                { 
+                    indicator: 'الاشتراكات المنتهية', 
+                    value: stats.subscriptions.expiredToday, 
+                    percentage: totalSubscriptions > 0 ? Math.min(100, Math.round((stats.subscriptions.expiredToday / totalSubscriptions) * 100)) : 0,
+                    change: '+2%' 
+                },
+                { 
+                    indicator: 'الاشتراكات المفعلة', 
+                    value: stats.subscriptions.active, 
+                    percentage: totalSubscriptions > 0 ? Math.min(100, Math.round((stats.subscriptions.active / totalSubscriptions) * 100)) : 0,
+                    change: '+5%' 
+                },
+                { 
+                    indicator: 'المشتركين لم يستقبلوا الاتصال', 
+                    value: stats.subscriptions.noAnswer, 
+                    percentage: totalSubscriptions > 0 ? Math.min(100, Math.round((stats.subscriptions.noAnswer / totalSubscriptions) * 100)) : 0,
+                    change: '-3%' 
+                },
+                { 
+                    indicator: 'المشتركين يعاودون الاتصال', 
+                    value: stats.subscriptions.callBackLater, 
+                    percentage: totalSubscriptions > 0 ? Math.min(100, Math.round((stats.subscriptions.callBackLater / totalSubscriptions) * 100)) : 0,
+                    change: '+1%' 
+                },
+                { 
+                    indicator: 'الصيانات الواردة', 
+                    value: stats.maintenance.incoming, 
+                    percentage: 100, // هذه القيمة الإجمالية
+                    change: '+8%' 
+                },
+                { 
+                    indicator: 'الصيانات المكتملة', 
+                    value: stats.maintenance.completed, 
+                    percentage: totalMaintenance > 0 ? Math.min(100, Math.round((stats.maintenance.completed / totalMaintenance) * 100)) : 0,
+                    change: '+7%' 
+                },
+                { 
+                    indicator: 'الصيانات المؤجلة', 
+                    value: stats.maintenance.postponed, 
+                    percentage: totalMaintenance > 0 ? Math.min(100, Math.round((stats.maintenance.postponed / totalMaintenance) * 100)) : 0,
+                    change: '+1%' 
+                },
+                { 
+                    indicator: 'التذاكر الواردة', 
+                    value: stats.tickets.incoming, 
+                    percentage: 100, // هذه القيمة الإجمالية
+                    change: '+4%' 
+                },
+                { 
+                    indicator: 'التذاكر المفتوحة', 
+                    value: stats.tickets.open, 
+                    percentage: totalTickets > 0 ? Math.min(100, Math.round((stats.tickets.open / totalTickets) * 100)) : 0,
+                    change: '-2%' 
+                },
+                { 
+                    indicator: 'التنصيبات الواردة', 
+                    value: stats.installations.incoming, 
+                    percentage: 100, // هذه القيمة الإجمالية
+                    change: '+6%' 
+                },
+                { 
+                    indicator: 'التنصيبات المكتملة', 
+                    value: stats.installations.completed, 
+                    percentage: totalInstallations > 0 ? Math.min(100, Math.round((stats.installations.completed / totalInstallations) * 100)) : 0,
+                    change: '+5%' 
+                }
+            ];
+            
+            statsData.forEach(item => {
+                const row = document.createElement('tr');
+                row.className = 'border-b hover:bg-gray-50';
+                
+                row.innerHTML = `
+                    <td class="p-3">${item.indicator}</td>
+                    <td class="p-3 font-semibold">${item.value}</td>
+                    <td class="p-3">${item.percentage}%</td>
+                    <td class="p-3 ${item.change.startsWith('+') ? 'text-green-600' : 'text-red-600'}">${item.change}</td>
+                `;
+                
+                statsTable.appendChild(row);
+            });
+        }
+
+        // إنشاء الرسوم البيانية
+        function createCharts(stats, reports) {
+            // رسم بياني للصيانات
+            const maintenanceCtx = document.getElementById('maintenanceChart').getContext('2d');
+            new Chart(maintenanceCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['مكتملة', 'قيد العمل', 'مؤجلة'],
+                    datasets: [{
+                        data: [
+                            stats.maintenance.completed,
+                            stats.maintenance.incoming - stats.maintenance.completed - stats.maintenance.postponed,
+                            stats.maintenance.postponed
+                        ],
+                        backgroundColor: ['#10B981', '#3B82F6', '#F59E0B']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            rtl: true
+                        }
+                    }
+                }
+            });
+            
+            // رسم بياني للاشتراكات
+            const subscriptionsCtx = document.getElementById('subscriptionsChart').getContext('2d');
+            new Chart(subscriptionsCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['منتهية', 'مفعلة', 'لم يرد', 'يعاود الاتصال'],
+                    datasets: [{
+                        data: [
+                            stats.subscriptions.expiredToday,
+                            stats.subscriptions.active,
+                            stats.subscriptions.noAnswer,
+                            stats.subscriptions.callBackLater
+                        ],
+                        backgroundColor: ['#EF4444', '#10B981', '#F59E0B', '#3B82F6']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            rtl: true
+                        }
+                    }
+                }
+            });
+            
+            // رسم بياني للموظفين (أعلى 5 موظفين أداءً)
+            const employeesCtx = document.getElementById('employeesChart').getContext('2d');
+            const topEmployees = Object.entries(stats.employees)
+                .sort((a, b) => (b[1].maintenanceCompleted / (b[1].maintenanceIncoming || 1)) - (a[1].maintenanceCompleted / (a[1].maintenanceIncoming || 1)))
+                .slice(0, 5);
+            
+            new Chart(employeesCtx, {
+                type: 'bar',
+                data: {
+                    labels: topEmployees.map(e => e[0]),
+                    datasets: [{
+                        label: 'الصيانات المكتملة',
+                        data: topEmployees.map(e => e[1].maintenanceCompleted),
+                        backgroundColor: '#3B82F6'
+                    }, {
+                        label: 'الصيانات الواردة',
+                        data: topEmployees.map(e => e[1].maintenanceIncoming),
+                        backgroundColor: '#10B981'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                            }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            rtl: true
+                        }
+                    }
+                }
+            });
+            
+            // رسم بياني للتنصيبات والتذاكر
+            const installationsTicketsCtx = document.getElementById('installationsTicketsChart').getContext('2d');
+            new Chart(installationsTicketsCtx, {
+                type: 'line',
+                data: {
+                    labels: reports.map(r => new Date(r.date).toLocaleDateString('ar-EG')).slice(-7),
+                    datasets: [{
+                        label: 'التنصيبات المكتملة',
+                        data: reports.map(r => r.installations.completed).slice(-7),
+                        borderColor: '#10B981',
+                        tension: 0.1,
+                        fill: false
+                    }, {
+                        label: 'التذاكر المغلقة',
+                        data: reports.map(r => r.tickets.incoming - r.tickets.open).slice(-7),
+                        borderColor: '#3B82F6',
+                        tension: 0.1,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            rtl: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // عرض رسالة عدم وجود بيانات
+        function showNoDataMessage() {
+            const statsContainer = document.getElementById('statsContainer');
+            statsContainer.innerHTML = `
+                <div class="md:col-span-4 bg-white rounded-lg shadow-md p-8 text-center">
+                    <i class="fas fa-chart-line text-6xl text-gray-300 mb-4"></i>
+                    <h3 class="text-xl font-semibold text-gray-600 mb-2">لا توجد بيانات</h3>
+                    <p class="text-gray-500">لم يتم العثور على تقارير مطابقة للفلاتر المحددة</p>
+                </div>
+            `;
+            
+            // إخفاء الجداول والرسوم البيانية
+            document.getElementById('statsTable').innerHTML = '';
+            document.querySelectorAll('canvas').forEach(canvas => {
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            });
+        }
+
+        // وظيفة الطباعة
+        document.getElementById('printStats').addEventListener('click', function() {
+            window.print();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تسجيل الدخول - نظام التقارير</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap');
+        
+        * {
+            font-family: 'Cairo', sans-serif;
+        }
+        
+        .login-container {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .login-form {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .login-form h2 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            color: #374151;
+            font-weight: 700;
+            font-size: 1.5rem;
+        }
+        
+        .login-form input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            transition: all 0.3s;
+        }
+        
+        .login-form input:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+        
+        .login-form button {
+            width: 100%;
+            padding: 12px;
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .login-form button:hover {
+            background-color: #2563eb;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border-left: 4px solid #ef4444;
+            transform: translateX(400px);
+            transition: all 0.3s ease-in-out;
+            z-index: 1000;
+            max-width: 400px;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification.success {
+            border-left-color: #10b981;
+            background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
+        }
+        
+        .notification.error {
+            border-left-color: #ef4444;
+            background: linear-gradient(135deg, #fef2f2 0%, #fef7f7 100%);
+        }
+    </style>
+</head>
+<body>
+    <!-- حاوية الإشعارات -->
+    <div id="notificationContainer" class="notification-container"></div>
+    
+    <!-- تصميم واجهة تسجيل الدخول -->
+    <div class="login-container">
+        <form class="login-form" onsubmit="handleLogin(event)">
+            <h2><i class="fas fa-user-circle ml-2"></i>تسجيل الدخول</h2>
+            
+            <div class="mb-4">
+                <label for="email" class="block text-sm font-medium text-gray-700 mb-2">البريد الإلكتروني</label>
+                <input type="email" id="email" placeholder="example@company.com" required
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            
+            <div class="mb-6">
+                <label for="password" class="block text-sm font-medium text-gray-700 mb-2">كلمة المرور</label>
+                <input type="password" id="password" placeholder="أدخل كلمة المرور" required
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition duration-200 flex items-center justify-center">
+                <i class="fas fa-sign-in-alt ml-2"></i>
+                تسجيل الدخول
+            </button>
+            
+            <div class="mt-4 text-center text-sm text-gray-600">
+                ليس لديك حساب؟ <a href="admin.html" class="text-blue-600 hover:text-blue-800">إنشاء حساب جديد</a>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // نظام الإشعارات
+        function showNotification(message, type = 'success', duration = 4000) {
+            const container = document.getElementById('notificationContainer');
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            
+            const icons = {
+                success: 'fas fa-check',
+                error: 'fas fa-times',
+                warning: 'fas fa-exclamation',
+                info: 'fas fa-info'
+            };
+
+            notification.innerHTML = `
+                <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                        <i class="${icons[type]} text-${type === 'success' ? 'green' : 'red'}-500"></i>
+                    </div>
+                    <div class="mr-3 flex-1">
+                        <p class="text-sm font-medium text-gray-800">${message}</p>
+                    </div>
+                    <button onclick="this.parentElement.parentElement.remove()" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-sm"></i>
+                    </button>
+                </div>
+            `;
+
+            container.appendChild(notification);
+
+            // إظهار الإشعار
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 100);
+
+            // إخفاء الإشعار تلقائياً
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, duration);
+        }
+        
+        function handleLogin(event) {
+            event.preventDefault();
+            
+            // التحقق من صحة البيانات
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            if (!email || !password) {
+                showNotification('يرجى ملء جميع الحقول', 'error');
+                return;
+            }
+            
+            // التحقق من صحة المستخدم
+            if (validateUser(email, password)) {
+                // حفظ بيانات الجلسة
+                const userData = getUserData(email);
+                sessionStorage.setItem('currentUser', JSON.stringify({
+                    id: userData.id,
+                    email: email,
+                    name: userData.name,
+                    department: userData.department
+                }));
+                
+                showNotification('تم تسجيل الدخول بنجاح', 'success');
+                
+                // التوجيه إلى التطبيق الرئيسي بعد ثانيتين
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 2000);
+            } else {
+                showNotification('البريد الإلكتروني أو كلمة المرور غير صحيحة', 'error');
+            }
+        }
+        
+        function validateUser(email, password) {
+            // الرجوع إلى قاعدة البيانات المحلية للمستخدمين
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            return users.some(user => user.email === email && user.password === password);
+        }
+        
+        function getUserData(email) {
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            const user = users.find(user => user.email === email);
+            return user || { name: 'مستخدم', department: 'موظف', id: Date.now().toString() };
+        }
+        
+        // تهيئة بعض المستخدمين للاختبار إذا لم يكن هناك مستخدمين
+        document.addEventListener('DOMContentLoaded', function() {
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            if (users.length === 0) {
+                const defaultUsers = [
+                    { id: '1', name: 'أحمد محمد', email: 'ahmed@company.com', password: '123456', department: 'الدعم الفني' },
+                    { id: '2', name: 'امير مهند', email: 'amir@company.com', password: '123456', department: 'متابع صباحي' },
+                    { id: '3', name: 'سارة علي', email: 'sara@company.com', password: '123456', department: 'متابع مسائي' }
+                ];
+                localStorage.setItem('users', JSON.stringify(defaultUsers));
+            }
+        });
+    </script>
+</body>
+</html>

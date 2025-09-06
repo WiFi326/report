@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سجل التقارير - نظام التقارير</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap');
+        
+        * {
+            font-family: 'Cairo', sans-serif;
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        .users-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .user-item {
+            transition: all 0.2s ease;
+        }
+        
+        .user-item:hover {
+            background-color: #f1f5f9;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- حاوية الإشعارات -->
+    <div id="notificationContainer" class="fixed top-4 right-4 z-50"></div>
+    
+    <!-- محتوى سجل التقارير -->
+    <div class="p-6">
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h1 class="text-2xl font-bold text-gray-800 mb-6">سجل التقارير</h1>
+            
+            <!-- فلاتر البحث -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-2 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">البحث</label>
+                    <input type="text" id="searchInput" placeholder="ابحث عن اسم الموظف..." class="w-3/4 p-2 border rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">من تاريخ</label>
+                    <input type="date" id="dateFrom" class="w-3/4 p-2 border rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">إلى تاريخ</label>
+                    <input type="date" id="dateTo" class="w-3/4 p-2 border rounded-lg">
+                </div>
+                <div class="flex items-end pt-6">
+                    <button onclick="filterReports()" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-700 mb-2">
+                        <i class="fas fa-filter ml-1"></i>
+                        تطبيق الفلتر
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- قائمة التقارير المفصلة -->
+        <div id="reportsDetailsList" class="space-y-6">
+            <!-- سيتم ملء التقارير هنا -->
+        </div>
+
+        <!-- رسالة عدم وجود تقارير -->
+        <div id="noReportsMessage" class="text-center py-12 bg-white rounded-lg shadow-md hidden">
+            <i class="fas fa-file-alt text-6xl text-gray-300 mb-4"></i>
+            <h3 class="text-xl font-semibold text-gray-600 mb-2">لا توجد تقارير</h3>
+            <p class="text-gray-500">لم يتم العثور على أي تقارير مطابقة للبحث</p>
+        </div>
+    </div>
+
+    <script>
+        // متغيرات خاصة بسجل التقارير
+        let reports = [];
+        
+        // تهيئة الصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            loadReports();
+            document.getElementById('searchInput').addEventListener('input', filterReports);
+        });
+        
+        // تحميل التقارير
+        function loadReports() {
+            try {
+                const savedReports = localStorage.getItem('reports');
+                if (savedReports) {
+                    reports = JSON.parse(savedReports);
+                    reports.sort((a, b) => new Date(b.date) - new Date(a.date));
+                    displayReports(reports);
+                } else {
+                    reports = [];
+                    showNotification('لا توجد تقارير محفوظة', 'info');
+                    displayReports([]);
+                }
+            } catch (error) {
+                console.error('خطأ في تحميل التقارير:', error);
+                showNotification('حدث خطأ في تحميل التقارير', 'error');
+                reports = [];
+                displayReports([]);
+            }
+        }
+        
+        // عرض التقارير
+        function displayReports(reportsData) {
+            const container = document.getElementById('reportsDetailsList');
+            const noReportsMessage = document.getElementById('noReportsMessage');
+            
+            container.innerHTML = '';
+
+            if (reportsData.length === 0) {
+                noReportsMessage.classList.remove('hidden');
+                return;
+            }
+
+            noReportsMessage.classList.add('hidden');
+
+            reportsData.forEach(report => {
+                const reportCard = document.createElement('div');
+                reportCard.className = 'bg-white rounded-lg shadow-md p-6 card-hover';
+
+                reportCard.innerHTML = `
+                    <!-- رأس التقرير -->
+                    <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <h2 class="text-xl font-bold text-gray-800 mb-2">التقرير اليومي</h2>
+                                <div class="bg-green-600 text-white px-4 py-2 rounded-lg inline-block">
+                                    <i class="fas fa-user ml-2"></i>
+                                    <span class="text-lg font-bold">${report.employee}</span>
+                                </div>
+                            </div>
+                            <div class="text-gray-600 text-left">
+                                <p><strong>التاريخ:</strong> ${new Date(report.date).toLocaleDateString('ar-EG')}</p>
+                                ${report.createdAt ? `<p><strong>تاريخ الإنشاء:</strong> ${new Date(report.createdAt).toLocaleTimeString('ar-EG')}</p>` : ''}
+                                ${report.updatedAt ? `<p><strong>تاريخ التعديل:</strong> ${new Date(report.updatedAt).toLocaleString('ar-EG')}</p>` : ''}
+                            </div>
+                        </div>
+                        <div class="mt-4 flex space-x-2 space-x-reverse">
+                            <button onclick="editReport('${report.id}')" class="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600">
+                                <i class="fas fa-edit ml-1"></i>
+                                تعديل
+                            </button>
+                            <button onclick="exportReport('${report.id}')" class="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600">
+                                <i class="fas fa-download ml-1"></i>
+                                تصدير التقرير
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- الاشتراكات -->
+                    <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                        <h3 class="text-lg font-semibold mb-3 text-blue-800 flex items-center">
+                            <i class="fas fa-users ml-2"></i>
+                            الاشتراكات
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div class="bg-red-100 p-3 rounded-lg">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">الاشتراكات المنتهية اليوم</label>
+                                <div class="text-lg font-bold text-red-600">${report.subscriptions.expiredToday || 0}</div>
+                            </div>
+                            <div class="bg-green-100 p-3 rounded-lg">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">الاشتراكات المفعلة</label>
+                                <div class="text-lg font-bold text-green-600">${report.subscriptions.active || 0}</div>
+                            </div>
+                            <div class="bg-orange-100 p-3 rounded-lg">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">المشتركين لم يستقبلوا الاتصال</label>
+                                <div class="text-lg font-bold text-orange-600">${report.subscriptions.noAnswer || 0}</div>
+                            </div>
+                            <div class="bg-blue-100 p-3 rounded-lg">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">المشتركين يعاودون الاتصال لاحقاً</label>
+                                <div class="text-lg font-bold text-blue-600">${report.subscriptions.callBackLater || 0}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- الاتصالات بالزونات النقد -->
+                    ${report.cashZones && report.cashZones.notes ? `
+                    <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                        <h3 class="text-lg font-semibold mb-3 text-blue-800 flex items-center">
+                            <i class="fas fa-phone ml-2"></i>
+                            الاتصالات بالزونات النقد
+                        </h3>
+                        <div class="bg-white p-3 rounded-lg border">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">ملاحظات الاتصالات بالزونات النقد</label>
+                            <div class="text-gray-800">${report.cashZones.notes}</div>
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    <!-- الصيانات -->
+                    <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                        <h3 class="text-lg font-semibold mb-3 text-blue-800 flex items-center">
+                            <i class="fas fa-tools ml-2"></i>
+                            الصيانات
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+                            <div class="bg-blue-100 p-3 rounded-lg">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">عدد الصيانات الواردة</label>
+                                <div class="text-lg font-bold text-blue-600">${report.maintenance.incoming}</div>
+                            </div>
+                            <div class="bg-green-100 p-3 rounded-lg">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">عدد الصيانات المكتملة</label>
+                                <div class="text-lg font-bold text-green-600">${report.maintenance.completed}</div>
+                            </div>
+                            <div class="bg-yellow-100 p-3 rounded-lg">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">عدد الصيانات المؤجلة</label>
+                                <div class="text-lg font-bold text-yellow-600">${report.maintenance.postponed}</div>
+                            </div>
+                        </div>
+                        
+                        ${report.maintenance.postponedNotes ? `
+                        <div class="bg-yellow-50 p-3 rounded-lg border-2 border-yellow-200 mb-3">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">سبب التأجيل</label>
+                            <div class="text-gray-800">${report.maintenance.postponedNotes}</div>
+                        </div>
+                        ` : ''}
+                        
+                        ${report.maintenance.generalNotes ? `
+                        <div class="bg-white p-3 rounded-lg border">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">ملاحظات حول الصيانات</label>
+                            <div class="text-gray-800">${report.maintenance.generalNotes}</div>
+                        </div>
+                        ` : ''}
+                    </div>
+
+                    <!-- التذاكر -->
+                    <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                        <h3 class="text-lg font-semibold mb-3 text-blue-800 flex items-center">
+                            <i class="fas fa-ticket-alt ml-2"></i>
+                            التذاكر (Tickets)
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                            <div class="bg-orange-100 p-3 rounded-lg">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">عدد التذاكر الواردة</label>
+                                <div class="text-lg font-bold text-orange-600">${report.tickets.incoming}</div>
+                            </div>
+                            <div class="bg-indigo-100 p-3 rounded-lg">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">عدد التذاكر المفتوحة</label>
+                                <div class="text-lg font-bold text-indigo-600">${report.tickets.open}</div>
+                            </div>
+                        </div>
+                        ${report.tickets.notes ? `
+                        <div class="bg-white p-3 rounded-lg border">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">ملاحظات حول التذاكر</label>
+                            <div class="text-gray-800">${report.tickets.notes}</div>
+                        </div>
+                        ` : ''}
+                    </div>
+
+                    <!-- التنصيبات -->
+                    <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                        <h3 class="text-lg font-semibold mb-3 text-blue-800 flex items-center">
+                            <i class="fas fa-network-wired ml-2"></i>
+                            التنصيبات
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                            <div class="bg-cyan-100 p-3 rounded-lg">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">عدد التنصيبات الواردة</label>
+                                <div class="text-lg font-bold text-cyan-600">${report.installations.incoming}</div>
+                            </div>
+                            <div class="bg-teal-100 p-3 rounded-lg">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">عدد التنصيبات المكتملة</label>
+                                <div class="text-lg font-bold text-teal-600">${report.installations.completed}</div>
+                            </div>
+                        </div>
+                        ${report.installations.serviceType ? `
+                        <div class="bg-white p-3 rounded-lg border mb-3">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">نوع الخدمة</label>
+                            <div class="text-gray-800 font-semibold">${report.installations.serviceType}</div>
+                        </div>
+                        ` : ''}
+                        ${report.installations.notes ? `
+                        <div class="bg-white p-3 rounded-lg border">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">ملاحظات حول التنصيبات</label>
+                            <div class="text-gray-800">${report.installations.notes}</div>
+                        </div>
+                        ` : ''}
+                    </div>
+
+                    <!-- التيمات والموظفين -->
+                    ${report.workItems && report.workItems.length > 0 ? `
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h3 class="text-lg font-semibold mb-3 text-blue-800 flex items-center">
+                            <i class="fas fa-users-cog ml-2"></i>
+                            التимات والموظفين
+                        </h3>
+                        <div class="space-y-4">
+                            ${report.workItems.map((item, index) => {
+                                if (item.type === 'employee') {
+                                    return `
+                                    <div class="bg-green-50 p-4 rounded-lg border-2 border-green-200">
+                                        <h4 class="text-lg font-semibold text-green-800 flex items-center mb-3">
+                                            <i class="fas fa-user ml-2"></i>
+                                            موظف: ${item.name}
+                                        </h4>
+                                        
+                                        ${item.rating ? `
+                                        <div class="mb-3">
+                                            <span class="inline-block bg-yellow-200 text-yellow-800 px-3 py-1 rounded-full text-sm font-semibold">
+                                                التقييم: ${item.rating}
+                                            </span>
+                                        </div>
+                                        ` : ''}
+
+                                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                                            <div class="bg-white p-2 rounded border">
+                                                <label class="block text-xs font-medium text-gray-600">الصيانات الواردة</label>
+                                                <div class="text-lg font-bold text-blue-600">${item.maintenanceIncoming}</div>
+                                            </div>
+                                            <div class="bg-white p-2 rounded border">
+                                                <label class="block text-xs font-medium text-gray-600">الصيانات المكتملة</label>
+                                                <div class="text-lg font-bold text-green-600">${item.maintenanceCompleted}</div>
+                                            </div>
+                                            <div class="bg-white p-2 rounded border">
+                                                <label class="block text-xs font-medium text-gray-600">الصيانات غير المكتملة</label>
+                                                <div class="text-lg font-bold text-red-600">${item.maintenanceIncomplete}</div>
+                                            </div>
+                                        </div>
+
+                                        ${item.maintenanceNotes ? `
+                                        <div class="bg-white p-3 rounded border mb-3">
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">ملاحظات الصيانات غير المكتملة</label>
+                                            <div class="text-gray-800">${item.maintenanceNotes}</div>
+                                        </div>
+                                        ` : ''}
+
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            ${item.cablesOutgoingNotes ? `
+                                            <div class="bg-white p-3 rounded border">
+                                                <label class="block text-sm font-medium text-gray-700 mb-1"> الكيبلات الصادرة</label>
+                                                <div class="text-gray-800">${item.cablesOutgoingNotes}</div>
+                                            </div>
+                                            ` : ''}
+                                            ${item.cablesIncomingNotes ? `
+                                            <div class="bg-white p-3 rounded border">
+                                                <label class="block text-sm font-medium text-gray-700 mb-1"> الكيبلات الواردة</label>
+                                                <div class="text-gray-800">${item.cablesIncomingNotes}</div>
+                                            </div>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                    `;
+                                } else if (item.type === 'team') {
+                                    return `
+                                    <div class="bg-blue-50 p-4 rounded-lg border-2 border-blue-200">
+                                        <h4 class="text-lg font-semibold text-blue-800 flex items-center mb-3">
+                                            <i class="fas fa-users ml-2"></i>
+                                            تيم
+                                        </h4>
+                                        
+                                        <div class="mb-3">
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">أعضاء التيم:</label>
+                                            <div class="flex flex-wrap gap-2">
+                                                ${item.members.map(member => `
+                                                    <span class="bg-blue-200 text-blue-800 px-2 py-1 rounded text-sm">${member}</span>
+                                                `).join('')}
+                                            </div>
+                                        </div>
+
+                                        ${item.rating ? `
+                                        <div class="mb-3">
+                                            <span class="inline-block bg-yellow-200 text-yellow-800 px-3 py-1 rounded-full text-sm font-semibold">
+                                                التقييم: ${item.rating}
+                                            </span>
+                                        </div>
+                                        ` : ''}
+
+                                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                                            <div class="bg-white p-2 rounded border">
+                                                <label class="block text-xs font-medium text-gray-600">الصيانات الواردة</label>
+                                                <div class="text-lg font-bold text-blue-600">${item.maintenanceIncoming}</div>
+                                            </div>
+                                            <div class="bg-white p-2 rounded border">
+                                                <label class="block text-xs font-medium text-gray-600">الصيانات المكتملة</label>
+                                                <div class="text-lg font-bold text-green-600">${item.maintenanceCompleted}</div>
+                                            </div>
+                                            <div class="bg-white p-2 rounded border">
+                                                <label class="block text-xs font-medium text-gray-600">الصيانات غير المكتملة</label>
+                                                <div class="text-lg font-bold text-red-600">${item.maintenanceIncomplete}</div>
+                                            </div>
+                                        </div>
+
+                                        ${item.maintenanceNotes ? `
+                                        <div class="bg-white p-3 rounded border mb-3">
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">ملاحظات الصيانات غير المكتملة</label>
+                                            <div class="text-gray-800">${item.maintenanceNotes}</div>
+                                        </div>
+                                        ` : ''}
+
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            ${item.cablesOutgoingNotes ? `
+                                            <div class="bg-white p-3 rounded border">
+                                                <label class="block text-sm font-medium text-gray-700 mb-1"> الكيبلات الصادرة</label>
+                                                <div class="text-gray-800">${item.cablesOutgoingNotes}</div>
+                                            </div>
+                                            ` : ''}
+                                            ${item.cablesIncomingNotes ? `
+                                            <div class="bg-white p-3 rounded border">
+                                                <label class="block text-sm font-medium text-gray-700 mb-1"> الكيبلات الواردة</label>
+                                                <div class="text-gray-800">${item.cablesIncomingNotes}</div>
+                                            </div>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                    `;
+                                }
+                                return '';
+                            }).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
+                `;
+                
+                container.appendChild(reportCard);
+            });
+        }
+        
+        // فلترة التقارير
+        function filterReports() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const dateFrom = document.getElementById('dateFrom').value;
+            const dateTo = document.getElementById('dateTo').value;
+
+            let filteredReports = reports.filter(report => {
+                const matchesSearch = !searchTerm || report.employee.toLowerCase().includes(searchTerm);
+                const matchesDateFrom = !dateFrom || report.date >= dateFrom;
+                const matchesDateTo = !dateTo || report.date <= dateTo;
+
+                return matchesSearch && matchesDateFrom && matchesDateTo;
+            });
+
+            filteredReports.sort((a, b) => new Date(b.date) - new Date(a.date));
+            displayReports(filteredReports);
+        }
+        
+        // تعديل التقرير
+        function editReport(reportId) {
+            // حفظ معرف التقرير للاستخدام في صفحة التقرير اليومي
+            localStorage.setItem('editingReportId', reportId);
+            // الانتقال إلى صفحة التقرير اليومي
+            window.location.href = 'daily-report.html';
+        }
+        
+        // تصدير التقرير
+        function exportReport(reportId) {
+            const report = reports.find(r => r.id === reportId);
+            
+            if (!report) {
+                showNotification('لم يتم العثور على التقرير', 'error');
+                return;
+            }
+            
+            // إنشاء نص التقرير
+            const reportText = generateReportText(report);
+            
+            // إنشاء وعرض مربع الحوار
+            showExportDialog(reportText, report.employee, report.date);
+        }
+        
+        // إنشاء نص التقرير
+        function generateReportText(report) {
+            let text = `التقرير اليومي - ${report.employee}\n`;
+            text += `التاريخ: ${new Date(report.date).toLocaleDateString('ar-EG')}\n`;
+            text += "=".repeat(50) + "\n\n";
+            
+            // الاشتراكات
+            text += "**الاشتراكات**\n";
+            text += "\n";
+            text += `- الاشتراكات المنتهية اليوم: ${report.subscriptions.expiredToday || 0}\n`;
+            text += `- الاشتراكات المفعلة: ${report.subscriptions.active || 0}\n`;
+            text += `- المشتركين لم يستقبلوا الاتصال: ${report.subscriptions.noAnswer || 0}\n`;
+            text += `- المشتركين يعاودون الاتصال لاحقاً: ${report.subscriptions.callBackLater || 0}\n\n`;
+            text += "─".repeat(50) + "\n\n";
+            
+            // الاتصالات بالزونات النقد
+            if (report.cashZones && report.cashZones.notes) {
+                text += "**الاتصالات بالزونات النقد**\n";
+                text += "\n";
+                text += `- ${report.cashZones.notes}\n\n`;
+                text += "─".repeat(50) + "\n\n";
+            }
+            
+            // الصيانات
+            text += "**الصيانات**\n";
+            text += "\n";
+            text += `- عدد الصيانات الواردة: ${report.maintenance.incoming}\n`;
+            text += `- عدد الصيانات المكتملة: ${report.maintenance.completed}\n`;
+            text += `- عدد الصيانات المؤجلة: ${report.maintenance.postponed}\n`;
+            
+            if (report.maintenance.postponedNotes) {
+                text += `- سبب التأجيل: ${report.maintenance.postponedNotes}\n`;
+            }
+            
+            if (report.maintenance.generalNotes) {
+                text += `- ملاحظات عامة: ${report.maintenance.generalNotes}\n`;
+            }
+            text += "\n";
+            text += "─".repeat(50) + "\n\n";
+
+            // التذاكر
+            text += "**التذاكر**\n";
+            text += "\n";
+            text += `- عدد التذاكر الواردة: ${report.tickets.incoming}\n`;
+            text += `- عدد التذاكر المفتوحة: ${report.tickets.open}\n`;
+            
+            if (report.tickets.notes) {
+                text += `- ملاحظات: ${report.tickets.notes}\n`;
+            }
+            text += "\n";
+            text += "─".repeat(50) + "\n\n";
+            
+            // التنصيبات
+            text += "**التنصيبات**\n";
+            text += "\n";
+            text += `- عدد التنصيبات الواردة: ${report.installations.incoming}\n`;
+            text += `- عدد التنصيبات المكتملة: ${report.installations.completed}\n`;
+            
+            if (report.installations.serviceType) {
+                text += `- نوع الخدمة: ${report.installations.serviceType}\n`;
+            }
+            
+            if (report.installations.notes) {
+                text += `- ملاحظات: ${report.installations.notes}\n`;
+            }
+            text += "\n";
+            text += "─".repeat(50) + "\n\n";
+            
+            // التيمات والموظفين
+            if (report.workItems && report.workItems.length > 0) {
+                text += "**التيمات والموظفين**\n";
+                
+                report.workItems.forEach((item, index) => {
+                    if (item.type === 'employee') {
+                        text += `\n${index + 1}. الموظف: ${item.name}\n`;
+                        text += "\n";
+                        if (item.rating) text += `   - التقييم: ${item.rating}\n`;
+                    } else if (item.type === 'team') {
+                        text += `\n${index + 1}. التيم: ${item.members.join('، ')}\n`;
+                        text += "\n";
+                        if (item.rating) text += `   - التقييم: ${item.rating}\n`;
+                    }
+
+                    text += `   - الصيانات الواردة: ${item.maintenanceIncoming}\n`;
+                    text += `   - الصيانات المكتملة: ${item.maintenanceCompleted}\n`;
+                    text += `   - الصيانات غير المكتملة: ${item.maintenanceIncomplete}\n`;
+                    
+                    if (item.maintenanceNotes) {
+                        text += `   - ملاحظات الصيانات غير المكتملة: ${item.maintenanceNotes}\n`;
+                    }
+                    
+                    if (item.cablesOutgoingNotes) {
+                        text += `   - ملاحظات الكيبلات الصادرة: ${item.cablesOutgoingNotes}\n`;
+                    }
+                    
+                    if (item.cablesIncomingNotes) {
+                        text += `   - ملاحظات الكيبلات الواردة: ${item.cablesIncomingNotes}\n`;
+                    }
+
+                    // إضافة فاصل بين الموظفين/التيمات
+                    if (index < report.workItems.length - 1) {
+                        text += "   " + "─".repeat(40) + "\n";
+                    }
+                });
+            }
+            
+            return text;
+        }
+        
+        // عرض مربع حوار التصدير
+        function showExportDialog(reportText, employeeName, date) {
+            // إنشاء العناصر
+            const overlay = document.createElement('div');
+            overlay.className = 'fixed inset-0 bg-black bg-opacity-50 z-50';
+            
+            const dialog = document.createElement('div');
+            dialog.className = 'fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg w-11/12 md:w-3/4 lg:w-1/2 max-h-96 overflow-hidden z-50';
+            
+            const header = document.createElement('div');
+            header.className = 'bg-blue-600 text-white p-4 flex justify-between items-center';
+            header.innerHTML = `
+                <h3 class="text-lg font-semibold">تصدير تقرير ${employeeName} - ${new Date(date).toLocaleDateString('ar-EG')}</h3>
+                <button onclick="closeExportDialog()" class="text-white hover:text-gray-200">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            const content = document.createElement('div');
+            content.className = 'p-4 max-h-64 overflow-y-auto';
+            
+            const textArea = document.createElement('div');
+            textArea.className = 'bg-gray-100 p-3 rounded border font-mono text-sm whitespace-pre-wrap';
+            textArea.textContent = reportText;
+            textArea.id = 'exportTextContent';
+            
+            const footer = document.createElement('div');
+            footer.className = 'bg-gray-100 p-4 flex justify-end space-x-2';
+            footer.innerHTML = `
+                <button onclick="copyExportText()" class="bg-green-600 text-white px-4 py-2 rounded flex items-center">
+                    <i class="fas fa-copy ml-1"></i>
+                    نسخ النص
+                </button>
+                <button onclick="closeExportDialog()" class="bg-gray-500 text-white px-4 py-2 rounded">
+                    إغلاق
+                </button>
+            `;
+            
+            // تجميع العناصر
+            content.appendChild(textArea);
+            dialog.appendChild(header);
+            dialog.appendChild(content);
+            dialog.appendChild(footer);
+            
+            // إضافة إلى DOM
+            document.body.appendChild(overlay);
+            document.body.appendChild(dialog);
+            
+            // إضافة مستمع حدث للإغلاق بالنقر خارج النافذة
+            overlay.addEventListener('click', closeExportDialog);
+        }
+        
+        // إغلاق مربع حوار التصدير
+        function closeExportDialog() {
+            const overlay = document.querySelector('.fixed.inset-0.bg-black');
+            const dialog = document.querySelector('.fixed.top-1/2.left-1/2');
+            
+            if (overlay) overlay.remove();
+            if (dialog) dialog.remove();
+        }
+        
+        // نسخ نص التقرير
+        function copyExportText() {
+            const textContent = document.getElementById('exportTextContent');
+            
+            // إنشاء عنصر نصي مؤقت للنسخ
+            const tempTextArea = document.createElement('textarea');
+            tempTextArea.value = textContent.textContent;
+            document.body.appendChild(tempTextArea);
+            
+            // تحديد ونسخ النص
+            tempTextArea.select();
+            document.execCommand('copy');
+            
+            // إزالة العنصر المؤقت
+            document.body.removeChild(tempTextArea);
+            
+            // إظهار إشعار النجاح
+            showNotification('تم نسخ نص التقرير إلى الحافظة', 'success');
+        }
+        
+        // نظام الإشعارات
+        function showNotification(message, type = 'success', duration = 4000) {
+            const container = document.getElementById('notificationContainer');
+            const notification = document.createElement('div');
+            notification.className = `bg-white p-4 rounded-lg shadow-lg border-l-4 ${type === 'success' ? 'border-green-500' : type === 'error' ? 'border-red-500' : type === 'warning' ? 'border-yellow-500' : 'border-blue-500'} mb-2`;
+            
+            const icons = {
+                success: 'fas fa-check-circle text-green-500',
+                error: 'fas fa-times-circle text-red-500',
+                warning: 'fas fa-exclamation-triangle text-yellow-500',
+                info: 'fas fa-info-circle text-blue-500'
+            };
+
+            notification.innerHTML = `
+                <div class="flex items-start">
+                    <i class="${icons[type]} mt-1 ml-2"></i>
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-gray-800">${message}</p>
+                    </div>
+                    <button onclick="this.parentElement.parentElement.remove()" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+
+            container.appendChild(notification);
+
+            // إخفاء الإشعار تلقائياً
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, duration);
+        }
+    </script>
+</body>
+</html>
