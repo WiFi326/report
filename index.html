@@ -172,41 +172,6 @@
         <div id="settings" class="section hidden p-6">
             <iframe src="settings.html" class="w-full h-screen border-none"></iframe>
         </div>
-        
-        <!-- قسم الواجهة الترحيبية -->
-        <div id="welcome" class="section p-6">
-            <div class="bg-white rounded-lg shadow-md p-8 text-center ">
-                <div class="mb-6">
-                    <i class="fas fa-check-circle text-green-500 text-6xl mb-4"></i>
-                    <h1 class="text-3xl font-bold text-gray-800 mb-2">مرحباً بك في نظام التقارير</h1>
-                    <p class="text-gray-600 text-lg">تم تسجيل دخولك بنجاح. اختر القسم الذي تريد الوصول إليه:</p>
-                </div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div class="bg-blue-50 p-6 rounded-lg cursor-pointer hover:bg-blue-100 transition-colors" onclick="showSection('daily-report')">
-                        <i class="fas fa-chart-line text-blue-600 text-4xl mb-4"></i>
-                        <h3 class="text-xl font-semibold text-blue-800 mb-2">التقرير اليومي</h3>
-                        <p class="text-gray-600">إضافة وتعديل التقارير اليومية</p>
-                    </div>
-                    
-                    <div class="bg-green-50 p-6 rounded-lg cursor-pointer hover:bg-green-100 transition-colors" onclick="showSection('reports-log')">
-                        <i class="fas fa-history text-green-600 text-4xl mb-4"></i>
-                        <h3 class="text-xl font-semibold text-green-800 mb-2">سجل التقارير</h3>
-                        <p class="text-gray-600">عرض وتصفح التقارير السابقة</p>
-                    </div>
-                    
-                    <div class="bg-purple-50 p-6 rounded-lg cursor-pointer hover:bg-purple-100 transition-colors" onclick="showSection('settings')">
-                        <i class="fas fa-cog text-purple-600 text-4xl mb-4"></i>
-                        <h3 class="text-xl font-semibold text-purple-800 mb-2">الإعدادات</h3>
-                        <p class="text-gray-600">إدارة إعدادات حسابك والنظام</p>
-                    </div>
-                </div>
-                
-                <button onclick="hideWelcomeScreen()" class="bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-colors">
-                    المتابعة إلى النظام
-                </button>
-            </div>
-        </div>
     </div>
 
     <script>
@@ -217,8 +182,9 @@
         document.addEventListener('DOMContentLoaded', function() {
             const currentUser = JSON.parse(sessionStorage.getItem('currentUser'));
             if (currentUser) {
-                // إظهار الشاشة الترحيبية عند الدخول
-                showWelcomeScreen();
+                // إظهار الشريط الجانبي وقسم التقرير اليومي مباشرة
+                document.getElementById('sidebar').style.display = 'flex';
+                showSection('daily-report');
             } else {
                 window.location.href = 'login.html';
             }
@@ -282,36 +248,6 @@
         function logout() {
             sessionStorage.removeItem('currentUser');
             window.location.href = 'login.html';
-        }
-        
-        // عرض وإخفاء الشاشة الترحيبية
-        function showWelcomeScreen() {
-            // إخفاء الشريط الجانبي
-            document.getElementById('sidebar').style.display = 'none';
-            
-            // إخفاء جميع الأقسام
-            document.querySelectorAll('.section').forEach(section => {
-                section.classList.add('hidden');
-            });
-            
-            // إظهار الشاشة الترحيبية
-            document.getElementById('welcome').classList.remove('hidden');
-            
-            // إزالة التحديد من جميع عناصر التنقل
-            document.querySelectorAll('.nav-item').forEach(item => {
-                item.classList.remove('bg-blue-800');
-            });
-        }
-        
-        function hideWelcomeScreen() {
-            // إخفاء الشاشة الترحيبية
-            document.getElementById('welcome').classList.add('hidden');
-            
-            // عرض قسم التقرير اليومي افتراضياً
-            showSection('daily-report');
-            
-            // حفظ حالة عدم إظهار الشاشة الترحيبية مرة أخرى
-            localStorage.setItem('welcomeScreenShown', 'true');
         }
     </script>
 </body>
