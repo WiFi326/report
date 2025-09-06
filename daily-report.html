@@ -731,6 +731,13 @@
                 // مسح النموذج
                 clearForm();
                 
+                 // التحويل إلى سجل التقارير بعد ثانيتين مع التركيز على آخر تقرير
+        setTimeout(() => {
+            // حفظ معرف آخر تقرير تمت إضافته للتركيز عليه
+            localStorage.setItem('lastAddedReportId', reportId);
+            window.location.href = 'reports-log.html';
+        }, 2000);
+        
             } catch (error) {
                 console.error('❌ خطأ في حفظ التقرير:', error);
                 showNotification(`خطأ في حفظ التقرير: ${error.message}`, 'error');
