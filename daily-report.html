@@ -34,6 +34,69 @@
         .incomplete-notes {
             transition: all 0.3s ease;
         }
+
+        
+        .notification {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            margin-bottom: 10px;
+            padding: 16px;
+            transform: translateX(400px);
+            transition: all 0.3s ease-in-out;
+            border-left: 4px solid;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            border-left-color: #10b981;
+            background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
+        }
+
+        .notification.error {
+            border-left-color: #ef4444;
+            background: linear-gradient(135deg, #fef2f2 0%, #fef7f7 100%);
+        }
+
+        .notification.warning {
+            border-left-color: #f59e0b;
+            background: linear-gradient(135deg, #fffbeb 0%, #fefce8 100%);
+        }
+
+        .notification.info {
+            border-left-color: #3b82f6;
+            background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%);
+        }
+
+        .notification-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+        }
+
+        .notification.success .notification-icon {
+            background: #10b981;
+        }
+
+        .notification.error .notification-icon {
+            background: #ef4444;
+        }
+
+        .notification.warning .notification-icon {
+            background: #f59e0b;
+        }
+
+        .notification.info .notification-icon {
+            background: #3b82f6;
+        }
     </style>
 </head>
 <body class="bg-gray-50">

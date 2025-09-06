@@ -93,25 +93,40 @@
         
         // تحميل التقارير
         function loadReports() {
-            try {
-                const savedReports = localStorage.getItem('reports');
-                if (savedReports) {
-                    reports = JSON.parse(savedReports);
-                    reports.sort((a, b) => new Date(b.date) - new Date(a.date));
-                    displayReports(reports);
-                } else {
-                    reports = [];
-                    showNotification('لا توجد تقارير محفوظة', 'info');
-                    displayReports([]);
+           try {
+        const savedReports = localStorage.getItem('reports');
+        if (savedReports) {
+            reports = JSON.parse(savedReports);
+            reports.sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            // التحقق إذا كان هناك تقرير محدد للتركيز عليه
+            const lastAddedReportId = localStorage.getItem('lastAddedReportId');
+            if (lastAddedReportId) {
+                // إزالة المعرف المخزن بعد استخدامه
+                localStorage.removeItem('lastAddedReportId');
+                
+                // البحث عن التقرير ووضعه في الأعلى إذا كان موجوداً
+                const lastReportIndex = reports.findIndex(r => r.id === lastAddedReportId);
+                if (lastReportIndex !== -1 && lastReportIndex > 0) {
+                    const lastReport = reports.splice(lastReportIndex, 1)[0];
+                    reports.unshift(lastReport);
                 }
-            } catch (error) {
-                console.error('خطأ في تحميل التقارير:', error);
-                showNotification('حدث خطأ في تحميل التقارير', 'error');
-                reports = [];
-                displayReports([]);
             }
+            
+            displayReports(reports);
+        } else {
+            reports = [];
+            showNotification('لا توجد تقارير محفوظة', 'info');
+            displayReports([]);
         }
-        
+    } catch (error) {
+        console.error('خطأ في تحميل التقارير:', error);
+        showNotification('حدث خطأ في تحميل التقارير', 'error');
+        reports = [];
+        displayReports([]);
+    }
+}
+
         // عرض التقارير
         function displayReports(reportsData) {
             const container = document.getElementById('reportsDetailsList');
